@@ -1,5 +1,5 @@
 import mongoose from "mongoose"
-import { Video } from "../models/videos.models.js"
+import { Video } from "../models/video.models.js"
 import { Subscription } from "../models/subscription.models.js"
 import { Like } from "../models/like.models.js"
 import { ApiError } from "../utils/ApiError.js"

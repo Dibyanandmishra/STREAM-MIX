@@ -1,25 +1,33 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: '/api/v1',
-    withCredentials: true, // send cookies for JWT auth
-});
+    baseURL: import.meta.env.VITE_API_URL,
+    withCredentials: true
+})
 
-// Intercept responses — on 401, attempt a token refresh once
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+
+        if (!isLoggedIn) {
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
+
             try {
-                await api.post('/users/refresh-token');
+                await api.post('/user/refresh-token');
                 return api(originalRequest);
-            } catch {
-                // Refresh failed — user must log in again
+            } catch (err) {
                 window.location.href = '/login';
+                return Promise.reject(err);
             }
         }
+
         return Promise.reject(error);
     }
 );

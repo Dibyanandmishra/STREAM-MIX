@@ -5,15 +5,14 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 
 const createPlaylist = asyncHandler(async (req, res) => {
-    const { name, description } = req.body;
+    const { name } = req.body;
 
-    if (!name?.trim() || !description?.trim()) {
-        throw new ApiError(400, "Name and Description both are required fields");
+    if (!name?.trim()) {
+        throw new ApiError(400, "Name is required");
     }
 
     const playlist = await Playlist.create({
         name: name.trim(),
-        description: description.trim(),
         owner: req.user._id,
     })
 

@@ -1,5 +1,5 @@
 # 🎬 StreamMix  
-### A Full-Stack Video Streaming Platform (YouTube × Netflix Inspired)
+### A Full-Stack Video Streaming Platform 
 
 StreamMix is a scalable full-stack video streaming platform that allows users to upload, stream, and interact with video content. Built with modern web technologies, it replicates core functionalities of platforms like YouTube and Netflix, including user authentication, subscriptions, playlists, and real-time engagement.
 
@@ -130,7 +130,7 @@ streammix/
 ├── README.md
 ├── package.json
 │
-├── docs/
+├── Docs/
 │   ├── PRD.md
 │   ├── USER_FLOW.md
 │   ├── DESIGN.md
@@ -154,7 +154,7 @@ cd streammix
 
 ### 2️⃣ Backend Setup
 ```bash
-cd backend
+cd BACKEND
 npm install
 ```
 
@@ -177,7 +177,7 @@ npm run dev
 
 ### 3️⃣ Frontend Setup
 ```bash
-cd frontend
+cd FRONTEND
 npm install
 ```
 
@@ -242,7 +242,7 @@ GET    /api/subscriptions
 
 ### 📂 Playlist UI
 ![Playlist](./screenshots/playlist.png)
-
+```
 
 ## 🚀 Future Improvements
 
@@ -273,7 +273,9 @@ Contributions are welcome!
 ## 🌐 Connect with Me
 
 [![GitHub](https://img.shields.io/badge/GitHub-Dibyanandmishra-181717?style=for-the-badge&logo=github)](https://github.com/Dibyanandmishra)
+
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Dibyanand%20Mishra-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/dibya-nand-mishra-84865a301/)
+
 [![Twitter](https://img.shields.io/badge/X-Dibya-000000?style=for-the-badge&logo=twitter)](https://x.com/nand_dibya51757)
 
 ## ⭐ Show Your Support

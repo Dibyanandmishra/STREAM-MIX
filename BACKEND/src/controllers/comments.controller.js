@@ -1,5 +1,5 @@
 import mongoose from "mongoose"
-import { Comment } from "../models/comment.models.js"
+import { Comment } from "../models/comments.models.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
@@ -16,9 +16,6 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const skip = (pageNum - 1) * limitNum;
-    // Optional Improvement:
-    // const pageNum = Math.max(1, Number(page));
-    // const limitNum = Math.max(1, Number(limit));
 
 
     const totalComment = await Comment.countDocuments({ video: videoId });
