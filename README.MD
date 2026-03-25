@@ -7,8 +7,8 @@ StreamMix is a scalable full-stack video streaming platform that allows users to
 
 ## 🚀 Demo / Preview
 
-🔗 Live Demo: *Coming Soon*  
-📽️ Demo Video: *Coming Soon*
+🌐 **Live Website:** https://streammix-frontend.onrender.com  
+📽️ **YouTube Demo:** https://youtu.be/c0t7Z1ThtsM  
 
 ---
 
@@ -100,9 +100,7 @@ StreamMix follows a **client-server architecture**:
 
 ---
 
-##  Folder Structure
-
-### Full Project Structure
+## Full Project Structure
 ```bash
 streammix/
 ├── backend/
@@ -228,20 +226,23 @@ GET    /api/subscriptions
 ```markdown
 ## 📸 Screenshots
 
-### 🏠 Homepage
+### Homepage
 ![Homepage](./screenshots/homepage.png)
 
-### 🎥 Video Player Page
-![Video Player](./screenshots/video-player.png)
+### Video Player Page
+![Video Player](./screenshots/video_player.png)
 
-### 📺 Channel Page
+### Channel Page
 ![Channel Page](./screenshots/channel.png)
 
-### 📊 Dashboard
-![Dashboard](./screenshots/dashboard.png)
+### Login
+![Login](./screenshots/login.png)
 
-### 📂 Playlist UI
-![Playlist](./screenshots/playlist.png)
+### Search
+![Search](./screenshots/search.png)
+
+### Uploading
+![Uploading](./screenshots/uploading.png)
 ```
 
 ## 🚀 Future Improvements
