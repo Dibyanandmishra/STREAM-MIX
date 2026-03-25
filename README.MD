@@ -223,11 +223,15 @@ GET    /api/subscriptions
 
 ## 📸 Screenshots Section 
 
-```markdown
-## 📸 Screenshots
+
+### Login
+![Login](./screenshots/login.png)
 
 ### Homepage
 ![Homepage](./screenshots/homepage.png)
+
+### Uploading
+![Uploading](./screenshots/uploading.png)
 
 ### Video Player Page
 ![Video Player](./screenshots/video_player.png)
@@ -235,15 +239,6 @@ GET    /api/subscriptions
 ### Channel Page
 ![Channel Page](./screenshots/channel.png)
 
-### Login
-![Login](./screenshots/login.png)
-
-### Search
-![Search](./screenshots/search.png)
-
-### Uploading
-![Uploading](./screenshots/uploading.png)
-```
 
 ## 🚀 Future Improvements
 
