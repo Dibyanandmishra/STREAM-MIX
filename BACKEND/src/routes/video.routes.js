@@ -9,18 +9,17 @@ import {
 } from "../controllers/video.controller.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { upload } from "../middlewares/multer.middleware.js"
+import { optionalVerifyJWT } from "../middlewares/optionalAuth.middleware.js"
 
 const router = Router();
 
 // Public routes (no auth required)
 router.route("/").get(getAllVideos);
 
-// Protected routes (auth required)
-router.use(verifyJWT);
-
 router
     .route("/")
     .post(
+        verifyJWT,
         upload.fields([
             {
                 name: "videoFile",
@@ -37,10 +36,10 @@ router
 
 router
     .route("/:videoId")
-    .get(getVideoById)
-    .delete(deleteVideo)
-    .patch(upload.single("thumbnail"), updateVideoDetails);
+    .get(optionalVerifyJWT, getVideoById)
+    .delete(verifyJWT, deleteVideo)
+    .patch(verifyJWT, upload.single("thumbnail"), updateVideoDetails);
 
-router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
+router.route("/toggle/publish/:videoId").patch(verifyJWT, togglePublishStatus);
 
 export default router

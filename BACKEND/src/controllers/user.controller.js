@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
@@ -23,6 +23,24 @@ const generateAccess_and_RefreshToken = async (userId) => {
 
 }
 
+const parseDurationToMs = (duration) => {
+    // Supports formats like "1d", "15m", "10h" or numeric seconds.
+    if (!duration) return undefined;
+    if (typeof duration === "number") return duration * 1000;
+
+    const d = String(duration).trim();
+    const match = d.match(/^(\d+)\s*([smhd])$/i);
+    if (!match) {
+        const asNumber = Number(d);
+        return Number.isFinite(asNumber) ? asNumber * 1000 : undefined;
+    }
+
+    const value = Number(match[1]);
+    const unit = match[2].toLowerCase();
+    const multipliers = { s: 1000, m: 60 * 1000, h: 60 * 60 * 1000, d: 24 * 60 * 60 * 1000 };
+    return multipliers[unit] ? value * multipliers[unit] : undefined;
+};
+
 const registerUser = asyncHandler(async (req, res) => {
 
     const { username, email, fullName, password } = req.body
@@ -33,8 +51,12 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required")
     }
 
+    // Normalize to match how the Mongoose schema stores values.
+    const normalizedUsername = username.trim().toLowerCase()
+    const normalizedEmail = email.trim().toLowerCase()
+
     const existedUser = await User.findOne({
-        $or: [{ email }, { username }]
+        $or: [{ email: normalizedEmail }, { username: normalizedUsername }]
     })
     if (existedUser) {
         throw new ApiError(409, "User already exists")
@@ -58,12 +80,12 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // create user object - create entry in db
     const user = await User.create({
-        fullName,
+        fullName: fullName.trim(),
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
-        email,
+        email: normalizedEmail,
         password,
-        username: username.toLowerCase()
+        username: normalizedUsername
     })
 
     const createdUser = await User.findById(user._id).select(
@@ -74,10 +96,40 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Something went wrong while registering the User")
     }
 
-    // return response
-    return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered Successfully")
-    )
+    // Issue auth tokens immediately so the client can call /current-user.
+    const { accessToken, refreshToken } = await generateAccess_and_RefreshToken(user._id)
+
+    const accessMaxAge = parseDurationToMs(process.env.ACCESS_TOKEN_EXPIRY)
+    const refreshMaxAge = parseDurationToMs(process.env.REFRESH_TOKEN_EXPIRY)
+
+    const accessOptions = {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    }
+
+    const refreshOptions = {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    }
+
+    if (typeof accessMaxAge === "number") accessOptions.maxAge = accessMaxAge
+    if (typeof refreshMaxAge === "number") refreshOptions.maxAge = refreshMaxAge
+
+    return res
+        .status(201)
+        .cookie("refreshToken", refreshToken, refreshOptions)
+        .cookie("accessToken", accessToken, accessOptions)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user: createdUser,
+                },
+                "User registered Successfully"
+            )
+        )
 
 })
 
@@ -89,8 +141,14 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "username or email is incorrect!... check loginUser")
     }
 
+    const normalizedEmail = email?.trim().toLowerCase()
+    const normalizedUsername = username?.trim().toLowerCase()
+
     const user = await User.findOne({
-        $or: [{ email }, { username }]
+        $or: [
+            ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
+            ...(normalizedUsername ? [{ username: normalizedUsername }] : []),
+        ]
     })
 
     if (!user) {
@@ -106,21 +164,33 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
-    const options = {
+    const accessMaxAge = parseDurationToMs(process.env.ACCESS_TOKEN_EXPIRY)
+    const refreshMaxAge = parseDurationToMs(process.env.REFRESH_TOKEN_EXPIRY)
+
+    const accessOptions = {
         httpOnly: true,
         secure: true,
         sameSite: "none"
     }
 
+    const refreshOptions = {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    }
+
+    if (typeof accessMaxAge === "number") accessOptions.maxAge = accessMaxAge
+    if (typeof refreshMaxAge === "number") refreshOptions.maxAge = refreshMaxAge
+
     return res
         .status(200)
-        .cookie("refreshToken", refreshToken, options)
-        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, refreshOptions)
+        .cookie("accessToken", accessToken, accessOptions)
         .json(
             new ApiResponse(
                 200,
                 {
-                    user: loggedInUser, accessToken, refreshToken
+                    user: loggedInUser
                 },
                 "User logged In Successfully"
             )
@@ -174,25 +244,31 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Refresh token is expired or used")
         }
 
-        const options = {
+        const accessMaxAge = parseDurationToMs(process.env.ACCESS_TOKEN_EXPIRY)
+        const refreshMaxAge = parseDurationToMs(process.env.REFRESH_TOKEN_EXPIRY)
+
+        const accessOptions = {
             httpOnly: true,
             secure: true,
             sameSite: "none"
         }
 
+        const refreshOptions = {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none"
+        }
+
+        if (typeof accessMaxAge === "number") accessOptions.maxAge = accessMaxAge
+        if (typeof refreshMaxAge === "number") refreshOptions.maxAge = refreshMaxAge
+
         const { accessToken, refreshToken: newRefreshToken } = await generateAccess_and_RefreshToken(user._id)
 
         return res
             .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", newRefreshToken, options)
-            .json(
-                new ApiResponse(
-                    200,
-                    { accessToken, refreshToken: newRefreshToken },
-                    "Access token refreshed"
-                )
-            )
+            .cookie("accessToken", accessToken, accessOptions)
+            .cookie("refreshToken", newRefreshToken, refreshOptions)
+            .json(new ApiResponse(200, {}, "Access token refreshed"))
     } catch (error) {
         throw new ApiError(401, "Invalid Refresh Token", error?.message)
     }
@@ -226,19 +302,28 @@ const GetCurrentUser = asyncHandler(async (req, res) => {
 const UpdateAccountDetails = asyncHandler(async (req, res) => {
     const { fullName, email } = req.body
     if (!fullName || !email) {
-        throw new ApiError(401, "All fields are required while updating Account Details")
+        throw new ApiError(400, "All fields are required while updating Account Details")
     }
+
+    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedFullName = fullName.trim()
 
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
-                fullName,
-                email
+                fullName: normalizedFullName,
+                email: normalizedEmail
             }
         },
-        { new: true }
-    ).select("-password")
+        { new: true, runValidators: true }
+    ).select("-password -refreshToken")
+    .catch((err) => {
+        if (err?.code === 11000) {
+            throw new ApiError(409, "Email is already in use")
+        }
+        throw err
+    })
 
     return res
         .status(200)
@@ -247,6 +332,8 @@ const UpdateAccountDetails = asyncHandler(async (req, res) => {
 })
 
 const UpdateAvatar = asyncHandler(async (req, res) => {
+    const oldAvatarUrl = (await User.findById(req.user?._id).select("avatar")).avatar
+
     const avatarBuffer = req.file?.buffer
     if (!avatarBuffer) {
         throw new ApiError(400, "Can't get avatar file")
@@ -267,6 +354,11 @@ const UpdateAvatar = asyncHandler(async (req, res) => {
         { new: true }
     ).select("-password")
 
+    // Best-effort cleanup for previous asset.
+    if (oldAvatarUrl && oldAvatarUrl !== avatar?.url) {
+        await deleteFromCloudinary(oldAvatarUrl)
+    }
+
     return res
         .status(200)
         .json(new ApiResponse(200, user, "Avatar updated Successfully"))
@@ -274,6 +366,8 @@ const UpdateAvatar = asyncHandler(async (req, res) => {
 })
 
 const UpdateCoverImage = asyncHandler(async (req, res) => {
+    const oldCoverUrl = (await User.findById(req.user?._id).select("coverImage")).coverImage
+
     const coverImageBuffer = req.file?.buffer
     if (!coverImageBuffer) {
         throw new ApiError(400, "Can't get coverImage file")
@@ -293,6 +387,10 @@ const UpdateCoverImage = asyncHandler(async (req, res) => {
         },
         { new: true }
     ).select("-password")
+
+    if (oldCoverUrl && oldCoverUrl !== coverImage?.url) {
+        await deleteFromCloudinary(oldCoverUrl)
+    }
 
     return res
         .status(200)

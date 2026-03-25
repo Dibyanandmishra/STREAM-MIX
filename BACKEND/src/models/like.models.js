@@ -19,4 +19,10 @@ const likeSchema = new Schema({
     }
 }, { timestamps: true })
 
+// Prevent duplicates per content type/user.
+// "sparse" allows documents that only set one of video/comment/tweet fields.
+likeSchema.index({ video: 1, likedBy: 1 }, { unique: true, sparse: true })
+likeSchema.index({ comment: 1, likedBy: 1 }, { unique: true, sparse: true })
+likeSchema.index({ tweet: 1, likedBy: 1 }, { unique: true, sparse: true })
+
 export const Like = mongoose.model("Like", likeSchema)

@@ -18,7 +18,8 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         }
 
         req.user = user;
-        next()
+        if (typeof next === "function") return next();
+        throw new ApiError(500, "Express middleware error: next is not a function");
     } catch (error) {
         throw new ApiError(401, "Invalid Access Token... check auth.middleware.js file... ERR: ", error?.message)
     }

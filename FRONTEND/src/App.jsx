@@ -20,6 +20,7 @@ import UserPlaylists from './pages/UserPlaylists';
 import Movies from './pages/Movies';
 import SettingsPage from './pages/SettingsPage';
 import Help from './pages/Help';
+import NotFound from './pages/NotFound';
 
 function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -48,7 +49,7 @@ function AppLayout() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/help" element={<Help />} />
             {/* Catch-all */}
-            <Route path="*" element={<Home />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
       </div>

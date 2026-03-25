@@ -11,10 +11,12 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await getCurrentUser();
             setUser(res.data?.data || null);
-        } catch {
-            // Silently fail — user is not logged in (no cookies present)
-            // The axios interceptor will NOT redirect here because
-            // the refresh-token call also fails silently on first load
+        } catch (err) {
+            // Most of the time a current-user call failing means "not logged in".
+            // For other failures, log for easier production debugging.
+            if (err?.response?.status !== 401 && err?.response?.status !== 403) {
+                console.error("fetchCurrentUser failed:", err?.response?.data || err?.message || err);
+            }
             setUser(null);
         } finally {
             setLoading(false);

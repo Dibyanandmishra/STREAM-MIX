@@ -123,7 +123,6 @@ const Watch = () => {
     const [shareSuccess, setShareSuccess] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
-    const [viewIncremented, setViewIncremented] = useState(false);
     const videoRef = useRef(null);
     const optionsRef = useRef(null);
 
@@ -144,7 +143,6 @@ const Watch = () => {
         setLikeCount(0);
         setIsSubscribed(false);
         setComments([]);
-        setViewIncremented(false);
 
         const fetchVideo = async () => {
             try {
@@ -152,6 +150,7 @@ const Watch = () => {
                 const v = res.data?.data;
                 setVideo(v);
                 setLikeCount(v?.likes || 0);
+                setIsLiked(!!v?.isLiked);
             } catch {
                 setError('Video not found or unavailable.');
             } finally {
@@ -169,16 +168,6 @@ const Watch = () => {
         // Fetch comments
         getVideoComments(id).then(res => setComments(res.data?.data?.comments || [])).catch(() => { });
     }, [id]);
-
-    // Increment view count when video starts playing (simulate)
-    const handleVideoPlay = () => {
-        if (!viewIncremented) {
-            setViewIncremented(true);
-            // The backend doesn't have a dedicated "increment view" endpoint,
-            // so we optimistically update the local UI only
-            setVideo(prev => prev ? { ...prev, views: (prev.views || 0) + 1 } : prev);
-        }
-    };
 
     const handleLike = async () => {
         if (!user) { navigate('/login'); return; }
@@ -244,7 +233,7 @@ const Watch = () => {
             <div className="flex-1 min-w-0">
                 {/* Player */}
                 <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] border border-white/5">
-                    <video ref={videoRef} src={video.videoFile} poster={video.thumbnail} controls className="w-full h-full" onPlay={handleVideoPlay} />
+                    <video ref={videoRef} src={video.videoFile} poster={video.thumbnail} controls className="w-full h-full" />
                 </div>
 
                 {/* Title */}

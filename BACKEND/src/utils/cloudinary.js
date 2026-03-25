@@ -25,4 +25,28 @@ const uploadOnCloudinary = async (fileBuffer) => {
     }
 };
 
-export { uploadOnCloudinary };
+const extractPublicIdFromCloudinaryUrl = (url) => {
+    if (!url || typeof url !== "string") return null;
+    // Common format: .../upload/v<version>/<public_id>.<ext>
+    const match =
+        url.match(/\/upload\/v\d+\/(.+)\.[^\/\.]+$/) ||
+        url.match(/\/(?:image|video)\/upload\/v\d+\/(.+)\.[^\/\.]+$/);
+
+    return match?.[1] || null;
+};
+
+const deleteFromCloudinary = async (resourceUrl) => {
+    const publicId = extractPublicIdFromCloudinaryUrl(resourceUrl);
+    if (!publicId) return false;
+
+    try {
+        await cloudinary.uploader.destroy(publicId);
+        return true;
+    } catch (err) {
+        // Defensive: never block user requests due to cleanup issues.
+        console.error("Cloudinary delete error:", err?.message || err);
+        return false;
+    }
+};
+
+export { uploadOnCloudinary, deleteFromCloudinary };

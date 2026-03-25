@@ -45,7 +45,7 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError);
                 // Only redirect if we're not already on the login page
-                if (window.location.pathname !== '/login') {
+                if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
                     window.location.href = '/login';
                 }
                 return Promise.reject(refreshError);

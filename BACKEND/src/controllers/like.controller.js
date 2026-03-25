@@ -25,10 +25,23 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         )
     }
 
-    const createdLike = await Like.create({
-        video: videoId,
-        likedBy: userId
-    })
+    let createdLike;
+    try {
+        createdLike = await Like.create({
+            video: videoId,
+            likedBy: userId
+        })
+    } catch (err) {
+        // Handle rare race conditions (duplicate key) by treating it as "already liked".
+        if (err?.code === 11000) {
+            const likeFromRace = await Like.findOne({ video: videoId, likedBy: userId })
+            if (likeFromRace) {
+                await Like.deleteOne({ _id: likeFromRace._id })
+                return res.status(200).json(new ApiResponse(200, {}, "Like removed from video"))
+            }
+        }
+        throw err
+    }
 
     return res.status(200).json(
         new ApiResponse(200, createdLike, "Video liked successfully")
@@ -54,10 +67,22 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         return res.status(200).json(new ApiResponse(200, {}, "Like Removed from Comment"))
     }
 
-    const createdLike = await Like.create({
-        comment: commentId,
-        likedBy: userId
-    })
+    let createdLike;
+    try {
+        createdLike = await Like.create({
+            comment: commentId,
+            likedBy: userId
+        })
+    } catch (err) {
+        if (err?.code === 11000) {
+            const likeFromRace = await Like.findOne({ comment: commentId, likedBy: userId })
+            if (likeFromRace) {
+                await Like.deleteOne({ _id: likeFromRace._id })
+                return res.status(200).json(new ApiResponse(200, {}, "Like Removed from Comment"))
+            }
+        }
+        throw err
+    }
 
     return res.status(200).json(new ApiResponse(200, { createdLike }, "Comment liked successfully"))
 })
@@ -80,10 +105,22 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         return res.status(200).json(new ApiResponse(200, {}, "Like Removed from tweet"))
     }
 
-    const createdLike = await Like.create({
-        tweet: tweetId,
-        likedBy: userId
-    })
+    let createdLike;
+    try {
+        createdLike = await Like.create({
+            tweet: tweetId,
+            likedBy: userId
+        })
+    } catch (err) {
+        if (err?.code === 11000) {
+            const likeFromRace = await Like.findOne({ tweet: tweetId, likedBy: userId })
+            if (likeFromRace) {
+                await Like.deleteOne({ _id: likeFromRace._id })
+                return res.status(200).json(new ApiResponse(200, {}, "Like Removed from tweet"))
+            }
+        }
+        throw err
+    }
 
     return res.status(200).json(new ApiResponse(200, { createdLike }, "tweet liked successfully"))
 })

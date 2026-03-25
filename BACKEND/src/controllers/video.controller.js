@@ -5,13 +5,15 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { Like } from "../models/like.models.js"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy = "createdAt", sortType = "desc", userId } = req.query
 
     const skip = (page - 1) * limit;
 
-    const filter = {};
+    // Public feed: only show published videos by default.
+    const filter = { isPublished: true };
 
     if (query) {
         filter.title = { $regex: query, $options: "i" };
@@ -74,8 +76,13 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Video Id is invalid")
     }
 
-    const video = await Video.findByIdAndUpdate(
-        videoId,
+    const isAuthenticated = !!req.user?._id;
+    const authUserId = req.user?._id;
+
+    const video = await Video.findOneAndUpdate(
+        isAuthenticated
+            ? { _id: videoId, $or: [{ isPublished: true }, { owner: authUserId }] }
+            : { _id: videoId, isPublished: true },
         { $inc: { views: 1 } },
         { new: true }
     ).populate("owner", "username avatar fullName");
@@ -92,8 +99,18 @@ const getVideoById = asyncHandler(async (req, res) => {
         );
     }
 
+    // Enrich response with like metadata for the UI.
+    const likeCount = await Like.countDocuments({ video: video._id })
+    const isLiked = req.user?._id
+        ? await Like.exists({ video: video._id, likedBy: req.user._id })
+        : false
+
+    const videoObj = typeof video.toObject === "function" ? video.toObject() : video
+    videoObj.likes = likeCount
+    videoObj.isLiked = !!isLiked
+
     return res.status(200).json(
-        new ApiResponse(200, video, "Video fetched successfully")
+        new ApiResponse(200, videoObj, "Video fetched successfully")
     )
 })
 
