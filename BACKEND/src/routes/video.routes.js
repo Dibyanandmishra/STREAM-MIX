@@ -11,11 +11,15 @@ import { verifyJWT } from "../middlewares/auth.middleware.js"
 import { upload } from "../middlewares/multer.middleware.js"
 
 const router = Router();
+
+// Public routes (no auth required)
+router.route("/").get(getAllVideos);
+
+// Protected routes (auth required)
 router.use(verifyJWT);
 
 router
     .route("/")
-    .get(getAllVideos)
     .post(
         upload.fields([
             {

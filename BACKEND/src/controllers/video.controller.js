@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
 import { Video } from "../models/video.models.js"
+import { User } from "../models/user.models.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
@@ -43,11 +44,11 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Video is required")
     }
 
-    const videoFileLocalPath = req.files.videoFile[0].path
-    const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path
+    const videoFileBuffer = req.files.videoFile[0].buffer
+    const thumbnailBuffer = req.files?.thumbnail?.[0]?.buffer || null
 
-    const videoUploaded = await uploadOnCloudinary(videoFileLocalPath)
-    const thumbnailUploaded = thumbnailLocalPath ? await uploadOnCloudinary(thumbnailLocalPath) : null;
+    const videoUploaded = await uploadOnCloudinary(videoFileBuffer)
+    const thumbnailUploaded = thumbnailBuffer ? await uploadOnCloudinary(thumbnailBuffer) : null;
 
     if (!videoUploaded?.url) {
         throw new ApiError(500, "Video upload failed")
@@ -58,6 +59,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         description,
         thumbnail: thumbnailUploaded?.url || "",
         videoFile: videoUploaded.url,
+        duration: videoUploaded.duration || 0,
         owner: req.user._id
     })
 
@@ -72,11 +74,22 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Video Id is invalid")
     }
 
-    const video = await Video.findById(videoId)
-        .populate("owner", "username avatar fullName")
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        { $inc: { views: 1 } },
+        { new: true }
+    ).populate("owner", "username avatar fullName");
 
     if (!video) {
         throw new ApiError(404, "Video not found")
+    }
+
+    // Add video to user's watch history (if user is authenticated)
+    if (req.user?._id) {
+        await User.findByIdAndUpdate(
+            req.user._id,
+            { $addToSet: { watchHistory: videoId } }
+        );
     }
 
     return res.status(200).json(
@@ -104,8 +117,8 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
     if (title?.trim()) updateData.title = title;
     if (description?.trim()) updateData.description = description;
 
-    if (req.file?.path) {
-        const thumbnailUploaded = await uploadOnCloudinary(req.files.path)
+    if (req.file?.buffer) {
+        const thumbnailUploaded = await uploadOnCloudinary(req.file.buffer)
         if (!thumbnailUploaded?.url) {
             throw new ApiError(500, "Thumbnail upload failed")
         }

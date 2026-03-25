@@ -40,21 +40,17 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User already exists")
     }
 
-    // check for images, check for avatar
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
-    let coverImageLocalPath;
-    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
-        coverImageLocalPath = req.files.coverImage[0].path
+    // check for images, check for avatar (using buffer from memoryStorage)
+    const avatarBuffer = req.files?.avatar?.[0]?.buffer;
+    if (!avatarBuffer) {
+        throw new ApiError(400, "Avatar is required")
     }
 
-    if (!avatarLocalPath) {
-        throw new ApiError(400, "avatar is required.. prblm in avatarLocalPath")
-    }
+    const coverImageBuffer = req.files?.coverImage?.[0]?.buffer || null;
 
-    // upload them in cloudinary - avatar
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+    // upload them to cloudinary via buffer stream
+    const avatar = await uploadOnCloudinary(avatarBuffer)
+    const coverImage = coverImageBuffer ? await uploadOnCloudinary(coverImageBuffer) : null
 
     if (!avatar) {
         throw new ApiError(400, "avatar is required.. cloudinary upload prblm")
@@ -112,7 +108,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: "none"
     }
 
@@ -146,7 +142,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     const options = {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: "none"
     }
 
@@ -180,11 +176,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         const options = {
             httpOnly: true,
-            secure: false,
+            secure: true,
             sameSite: "none"
         }
 
-        const { accessToken, newRefreshToken } = await generateAccess_and_RefreshToken(user._id)
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccess_and_RefreshToken(user._id)
 
         return res
             .status(200)
@@ -251,14 +247,14 @@ const UpdateAccountDetails = asyncHandler(async (req, res) => {
 })
 
 const UpdateAvatar = asyncHandler(async (req, res) => {
-    const avatarLocalPath = req.file?.path
-    if (!avatarLocalPath) {
-        throw new ApiError(400, "Can't get avatar Path")
+    const avatarBuffer = req.file?.buffer
+    if (!avatarBuffer) {
+        throw new ApiError(400, "Can't get avatar file")
     }
 
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
-    if (!avatar.url) {
-        throw new ApiError(400, "Can't get avatar from Cloudinary")
+    const avatar = await uploadOnCloudinary(avatarBuffer)
+    if (!avatar?.url) {
+        throw new ApiError(400, "Avatar upload to Cloudinary failed")
     }
 
     const user = await User.findByIdAndUpdate(
@@ -278,14 +274,14 @@ const UpdateAvatar = asyncHandler(async (req, res) => {
 })
 
 const UpdateCoverImage = asyncHandler(async (req, res) => {
-    const coverImageLocalPath = req.file?.path
-    if (!coverImageLocalPath) {
-        throw new ApiError(400, "Can't get coverImage Path")
+    const coverImageBuffer = req.file?.buffer
+    if (!coverImageBuffer) {
+        throw new ApiError(400, "Can't get coverImage file")
     }
 
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-    if (!coverImage.url) {
-        throw new ApiError(400, "Can't get coverImage from Cloudinary")
+    const coverImage = await uploadOnCloudinary(coverImageBuffer)
+    if (!coverImage?.url) {
+        throw new ApiError(400, "Cover image upload to Cloudinary failed")
     }
 
     const user = await User.findByIdAndUpdate(

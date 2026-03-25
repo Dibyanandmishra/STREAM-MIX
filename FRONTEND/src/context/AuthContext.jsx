@@ -12,6 +12,9 @@ export const AuthProvider = ({ children }) => {
             const res = await getCurrentUser();
             setUser(res.data?.data || null);
         } catch {
+            // Silently fail — user is not logged in (no cookies present)
+            // The axios interceptor will NOT redirect here because
+            // the refresh-token call also fails silently on first load
             setUser(null);
         } finally {
             setLoading(false);
@@ -25,8 +28,17 @@ export const AuthProvider = ({ children }) => {
     const login = (userData) => setUser(userData);
     const logout = () => setUser(null);
 
+    const value = {
+        user,
+        loading,
+        isLoggedIn: !!user,
+        login,
+        logout,
+        refetchUser: fetchCurrentUser
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, refetchUser: fetchCurrentUser }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

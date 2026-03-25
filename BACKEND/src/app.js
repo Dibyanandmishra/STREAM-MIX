@@ -11,7 +11,7 @@ app.use(cors({
 
 app.use(express.json({ limit: "100kb" }))
 app.use(express.urlencoded({ extended: true, limit: "100kb" }))
-app.use(express.static("public"))
+// No static file serving needed — uploads go directly to Cloudinary
 app.use(cookieParser())
 
 
@@ -36,5 +36,15 @@ app.use("/api/v1/comment", commentRouter)
 app.use("/api/v1/like", likeRouter)
 app.use("/api/v1/playlist", playlistRouter)
 app.use("/api/v1/dashboard", dashboardRouter)
+
+// Global error handler — must be after all routes
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500;
+    res.status(statusCode).json({
+        success: false,
+        message: err.message || "Internal Server Error",
+        errors: err.errors || [],
+    });
+});
 
 export default app;
