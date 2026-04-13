@@ -1,4 +1,4 @@
-# 🎬 StreamMix  
+# 🎬 Stream-Mix  
 ### A Full-Stack Video Streaming Platform 
 
 StreamMix is a scalable full-stack video streaming platform that allows users to upload, stream, and interact with video content. Built with modern web technologies, it replicates core functionalities of platforms like YouTube and Netflix, including user authentication, subscriptions, playlists, and real-time engagement.
